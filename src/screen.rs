@@ -1,10 +1,16 @@
+use io::Write;
 use crossterm::{
     terminal,
     ExecutableCommand, 
     event::read,
     style::Print,
     event::Event,
-    event::KeyEvent
+    event::KeyEvent,
+    event::KeyCode,
+    cursor::MoveTo,
+    cursor::MoveLeft,
+    cursor::MoveToNextLine,
+    execute,
 };
 
 use std::io;
@@ -19,19 +25,38 @@ impl RtxtApp {
         let mut stdout = io::stdout();
         stdout.execute(terminal::EnterAlternateScreen).expect("Could not enter alternate screen mode in terminal.");
         terminal::enable_raw_mode().expect("Could not enable raw mode for the terminal!");
+        stdout.execute(MoveTo(0,0)).unwrap();
         RtxtApp{}
     }
 
     ///Just echoes the keys pressed used to test raw mode.
     pub fn echo_keyboard(&mut self) {
-        match read().unwrap() {
-            Event::Key(KeyEvent {
-                code: _,
-                modifiers: _,
-                //clearing the screen and printing our message
-            }) => io::stdout().execute(Print("Hello keypress!")).unwrap(),
-            _ => io::stdout().execute(Print("")).unwrap()
-        };
+        let mut stdout = io::stdout();
+        loop {
+            match read().unwrap() {
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('q'),
+                    modifiers: _,
+                    //clearing the screen and printing our message
+                }) => break,
+                Event::Key(KeyEvent {
+                    code: KeyCode::Backspace,
+                    modifiers: _,
+                    //clearing the screen and printing our message
+                }) => execute!(stdout,MoveLeft(1),Print(" "),MoveLeft(1)).unwrap(),
+                Event::Key(KeyEvent {
+                    code: KeyCode::Enter,
+                    modifiers: _,
+                    //clearing the screen and printing our message
+                }) => execute!(stdout,MoveToNextLine(1)).unwrap(),
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char(y),
+                    modifiers: _,
+                    //clearing the screen and printing our message
+                }) => execute!(stdout,Print(y)).unwrap(),
+                _ => execute!(stdout,Print("")).unwrap()
+            };
+        }
     }
 }
 
